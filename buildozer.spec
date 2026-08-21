@@ -3,7 +3,7 @@
 title = FlappyBird Aryan
 package.name = flappybirdaryan
 package.domain = org.flappybirdaryan
-
+version = 1.0
 source.dir = .
 source.include_exts = py,mp3,wav,png,jpg,jpeg
 
