@@ -25,50 +25,55 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
             unzip \
-            curl \
-            wget \
             autoconf \
             automake \
             libtool \
-            libltdl-dev \
             pkg-config \
             zlib1g-dev \
             libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
-            cmake \
             libffi-dev \
             libssl-dev \
-            gettext \
-            autopoint \
+            cmake \
             build-essential
 
-      - name: Setup Android SDK
+      - name: Install Buildozer
         run: |
-          mkdir -p "$HOME/android-sdk/cmdline-tools"
+          python -m pip install --upgrade pip setuptools wheel
+          pip install buildozer
+          pip install "cython==0.29.34"
+
+      - name: Prepare Android SDK
+        run: |
+          mkdir -p "$HOME/.buildozer/android/platform"
 
           curl -L -o sdk.zip \
             https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
 
-          unzip -q sdk.zip -d "$HOME/android-sdk/cmdline-tools"
+          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools"
 
-          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" \
-             "$HOME/android-sdk/cmdline-tools/latest"
+          unzip -q sdk.zip -d /tmp/android-tools
 
-          echo "ANDROID_HOME=$HOME/android-sdk" >> "$GITHUB_ENV"
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> "$GITHUB_ENV"
+          mv /tmp/android-tools/cmdline-tools \
+            "$HOME/.buildozer/android/platform/android-sdk/cmdline-tools/latest"
 
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$HOME/android-sdk/platform-tools" >> "$GITHUB_PATH"
-          echo "$HOME/android-sdk/build-tools/34.0.0" >> "$GITHUB_PATH"
+          export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
 
-      - name: Install Android SDK packages
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+
+      - name: Install Android SDK components
         run: |
+          export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+
           yes | sdkmanager --licenses || true
 
           sdkmanager \
@@ -76,40 +81,25 @@ jobs:
             "platforms;android-34" \
             "build-tools;34.0.0"
 
-      - name: Configure Buildozer Android SDK
+      - name: Verify AIDL
         run: |
-          mkdir -p "$HOME/.buildozer/android/platform"
+          export ANDROID_HOME="$HOME/.buildozer/android/platform/android-sdk"
 
-          ln -sfn \
-            "$ANDROID_HOME" \
-            "$HOME/.buildozer/android/platform/android-sdk"
+          echo "Checking Android SDK..."
+          ls -la "$ANDROID_HOME"
 
-      - name: Check Android tools
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-
-          echo "Installed Build Tools:"
+          echo "Checking Build Tools..."
           ls -la "$ANDROID_HOME/build-tools"
 
-          echo "Checking AIDL:"
-          "$ANDROID_HOME/build-tools/34.0.0/aidl" --version
+          echo "Checking AIDL..."
+          test -f "$ANDROID_HOME/build-tools/34.0.0/aidl"
 
-          echo "Checking Buildozer SDK path:"
-          ls -la "$HOME/.buildozer/android/platform/android-sdk"
+          echo "AIDL FOUND!"
 
       - name: Install Rust
         run: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-
-      - name: Install Buildozer
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-
-          pip install buildozer
-
-          pip install "cython==0.29.34"
 
       - name: Build APK
         run: |
