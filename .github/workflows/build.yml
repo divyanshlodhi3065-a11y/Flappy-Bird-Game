@@ -25,14 +25,27 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
+
           sudo apt-get install -y \
-            git zip unzip curl \
-            autoconf automake libtool \
-            libltdl-dev pkg-config \
-            zlib1g-dev libncurses5-dev \
-            libncursesw5-dev libtinfo6 \
-            cmake libffi-dev libssl-dev \
-            gettext autopoint build-essential
+            git \
+            zip \
+            unzip \
+            curl \
+            autoconf \
+            automake \
+            libtool \
+            libltdl-dev \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            libtinfo6 \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            gettext \
+            autopoint \
+            build-essential
 
       - name: Setup Android SDK
         run: |
@@ -51,16 +64,25 @@ jobs:
 
           echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$HOME/android-sdk/platform-tools" >> "$GITHUB_PATH"
-          echo "$HOME/android-sdk/build-tools/35.0.0" >> "$GITHUB_PATH"
+          echo "$HOME/android-sdk/build-tools/34.0.0" >> "$GITHUB_PATH"
 
-      - name: Install Android packages
+      - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses || true
 
           sdkmanager \
             "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
+            "platforms;android-34" \
+            "build-tools;34.0.0"
+
+      - name: Check Android tools
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
+          echo "Checking AIDL..."
+          which aidl
+          aidl --help
 
       - name: Install Rust
         run: |
@@ -72,11 +94,6 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer
           pip install "cython==0.29.34"
-
-      - name: Check AIDL
-        run: |
-          which aidl
-          aidl --version
 
       - name: Build APK
         run: |
