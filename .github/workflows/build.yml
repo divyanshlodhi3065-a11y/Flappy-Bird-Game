@@ -22,33 +22,45 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            openjdk-17-jdk \
-            python3-pip \
-            python3-virtualenv \
-            autoconf \
-            automake \
-            libtool \
-            libltdl-dev \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            libtinfo6 \
-            cmake \
-            libffi-dev \
-            libssl-dev \
-            gettext \
-            autopoint \
-            build-essential \
-            curl
+            git zip unzip curl \
+            autoconf automake libtool \
+            libltdl-dev pkg-config \
+            zlib1g-dev libncurses5-dev \
+            libncursesw5-dev libtinfo6 \
+            cmake libffi-dev libssl-dev \
+            gettext autopoint build-essential
+
+      - name: Setup Android SDK
+        run: |
+          mkdir -p "$HOME/android-sdk/cmdline-tools"
+
+          curl -L -o sdk.zip \
+            https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip
+
+          unzip -q sdk.zip -d "$HOME/android-sdk/cmdline-tools"
+
+          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" \
+             "$HOME/android-sdk/cmdline-tools/latest"
+
+          echo "ANDROID_HOME=$HOME/android-sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> "$GITHUB_ENV"
+
+          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$HOME/android-sdk/platform-tools" >> "$GITHUB_PATH"
+          echo "$HOME/android-sdk/build-tools/35.0.0" >> "$GITHUB_PATH"
+
+      - name: Install Android packages
+        run: |
+          yes | sdkmanager --licenses || true
+
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Install Rust
         run: |
@@ -60,6 +72,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           pip install buildozer
           pip install "cython==0.29.34"
+
+      - name: Check AIDL
+        run: |
+          which aidl
+          aidl --version
 
       - name: Build APK
         run: |
