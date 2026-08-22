@@ -8,22 +8,21 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Setup Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Install system dependencies
+      - name: Install Linux dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -39,23 +38,52 @@ jobs:
             libssl-dev \
             libltdl-dev
 
-      - name: Install Python build tools
+      - name: Install Buildozer
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install \
-            buildozer==1.6.0 \
-            cython==0.29.37
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install "buildozer==1.6.0"
+          python -m pip install "Cython==0.29.37"
+
+      - name: Check project files
+        run: |
+          python --version
+          buildozer --version
+          echo "----- PROJECT -----"
+          ls -lah
+          echo "----- REQUIRED FILES -----"
+          test -f main.py
+          test -f jump.mp3
+          test -f score.mp3
+          test -f gameover.mp3
+          test -f buildozer.spec
+          echo "All required files found."
+
+      - name: Show Android configuration
+        run: |
+          grep -E '^(requirements|android.api|android.minapi|android.ndk_api|android.archs|source.include_exts)' buildozer.spec || true
+
+      - name: Clean Buildozer cache
+        run: |
+          rm -rf .buildozer
+          rm -rf bin
 
       - name: Build APK
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+          PIP_NO_CACHE_DIR: "1"
         run: |
           yes | buildozer -v android debug
 
-      - name: List APK files
+      - name: Find APK
+        if: always()
         run: |
-          find bin -type f -name "*.apk" -print
+          echo "========== APK SEARCH =========="
+          find . -type f -name "*.apk" -print
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: flappybird-apk
           path: bin/*.apk
+          if-no-files-found: error
